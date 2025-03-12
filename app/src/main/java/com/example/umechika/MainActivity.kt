@@ -19,8 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.umechika.ui.theme.UmechikaTheme
 import com.mapbox.android.core.permissions.PermissionsListener
 import com.mapbox.android.core.permissions.PermissionsManager
-import com.mapbox.navigation.base.options.NavigationOptions
-import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
+
 
 
 class MainActivity : ComponentActivity() {
@@ -31,13 +30,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (!MapboxNavigationApp.isSetup()) {
-            MapboxNavigationApp.setup {
-                NavigationOptions.Builder(this)
-                    .accessToken(getString( R.string.mapbox_access_token) ) // 🚀 APIトークンをセット
-                    .build()
-            }.attachAllActivities(this.application)
-        }
+
         // 位置情報の権限を保持しているかを確認
         if (PermissionsManager.areLocationPermissionsGranted(this)) {
             setContent {

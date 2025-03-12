@@ -66,47 +66,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-//    implementation ("com.mapbox.navigation:core:2.20.2")
-    implementation ("com.mapbox.navigation:android:2.20.2"){
-        exclude(group = "com.mapbox.common", module = "okhttp")
-    }
-//
-    implementation("com.mapbox.maps:android:10.19.0"){
-        exclude(group = "com.mapbox.common", module = "okhttp")
-    }
-
-//    implementation("com.mapbox.extension:maps-compose:11.10.2"){
-//        exclude(group = "com.mapbox.common", module = "okhttp")
-//    }
-    configurations.all {
-        exclude(group = "com.mapbox.common", module = "okhttp")
-    }
-//    implementation ("com.mapbox.navigation:ui-dropin:2.20.2")
-//
-//    implementation("com.mapbox.navigationcore:android:3.8.0-beta.1")
-//        implementation("com.mapbox.navigationcore:navigation:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:copilot:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:ui-maps:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:voice:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:tripdata:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:android:3.8.0-beta.1")
-//    implementation("com.mapbox.navigationcore:ui-components:3.8.0-beta.1")
-//    val nav_version = "2.8.8"
-//
-//
-//    // Jetpack Compose integration
-//    implementation("androidx.navigation:navigation-compose:$nav_version")
-//
-//    // Views/Fragments integration
-//    implementation("androidx.navigation:navigation-fragment:$nav_version")
-//    implementation("androidx.navigation:navigation-ui:$nav_version")
-//
-//    // Feature module support for Fragments
-//    implementation("androidx.navigation:navigation-dynamic-features-fragment:$nav_version")
-//
-//    // Testing Navigation
-//    androidTestImplementation("androidx.navigation:navigation-testing:$nav_version")
-//
-//    // JSON serialization library, works with the Kotlin serialization plugin
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("com.mapbox.maps:android:11.10.2")
+    implementation("com.mapbox.extension:maps-compose:11.10.2")
 }
