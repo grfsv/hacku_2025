@@ -1,4 +1,4 @@
-package com.example.umechika.ui.screen
+package com.example.umechika.utils
 
 import android.content.Context
 import android.hardware.Sensor
