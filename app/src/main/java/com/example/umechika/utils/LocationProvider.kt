@@ -96,8 +96,8 @@ class CustomLocationProvider(context: Context) :
         }
     }
 
-    fun stopUpdating() {
-        handler.removeCallbacksAndMessages(null)
-        sensorManager.unregisterListener(this)
-    }
+//    fun stopUpdating() {
+//        handler.removeCallbacksAndMessages(null)
+//        sensorManager.unregisterListener(this)
+//    }
 }

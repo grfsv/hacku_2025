@@ -1,10 +1,12 @@
 package com.example.umechika.ui.screen
 
-import NavigationManager
-import RouteCallback
+import com.example.umechika.utils.NavigationManager
+import com.example.umechika.utils.RouteCallback
+import android.view.View
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,30 +28,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.umechika.R
-
-import com.example.umechika.samples.toHansinFromHankyu
+import com.example.umechika.samples.EmptyRoute
+import com.example.umechika.samples.FromHankyuToHanshin
+import com.example.umechika.samples.NavigationRoute
 import com.example.umechika.ui.theme.*
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.android.gestures.StandardScaleGestureDetector
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
+import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.extension.style.layers.addLayerAt
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
-import com.mapbox.maps.extension.style.layers.getLayer
 import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
+import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.PuckBearing
-import com.mapbox.maps.plugin.gestures.GesturesPlugin
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.OnScaleListener
 import com.mapbox.maps.plugin.gestures.gestures
@@ -63,19 +67,17 @@ fun ShowMap() {
     // 位置情報を追尾するフラグ
     val isTracking = remember { mutableStateOf(true) }
     // 地図の立体表示切り替え
-    val isTilt = remember { mutableStateOf(false) }
-    // 地図の表示サイズ
-    val scale = remember { mutableDoubleStateOf(15.0) }
+    val isTilt = remember { mutableStateOf(true) }
 
+    // 地図の表示サイズ
+    val scale = remember { mutableDoubleStateOf(18.5) }
     val mapViewportState = rememberMapViewportState()
-    val currentStyle = remember { mutableStateOf(Style.STANDARD) }
 
     // 目的地までのルート
-    val routeLine = remember { mutableStateOf<List<Point>>(emptyList()) }
-    val context = LocalContext.current
+    val routeLine = remember { mutableStateOf<NavigationRoute>(EmptyRoute()) }
 
-
-
+    // 表示に使うデフォルトのスタイル
+    val defaultStyle = "mapbox://styles/umetika/cm85zer6f007f01rg1mrn8ggd"
 
     Box(
         modifier = Modifier
@@ -84,17 +86,13 @@ fun ShowMap() {
     ) {
         MapboxMap(
             modifier = Modifier.fillMaxSize(),
+            style = { MapStyle(defaultStyle) },
             mapViewportState = mapViewportState,
-        ) {
-            // ルートが設定されていた場合にルートの進行状況に応じて視覚的に管理する関数
-            // 1. 設定されているルートをコピー
-            /// ->ループ
-            // 2. 自分が経過したところまでを削除する
-            // 3. 自分の位置を追加
-            // 4. 描画
 
+            ) {
 
             MapEffect(Unit) { mapView ->
+                mapView.visibility = View.GONE
                 mapView.location.apply {
                     enabled = true
                     // 地図上に自信の座標を表示する
@@ -106,108 +104,160 @@ fun ShowMap() {
                     }
                 }
 
+
 //                mapView.location.setLocationProvider(
 //                    locationProvider = CustomLocationProvider(context = context)
 //                )
 
-                mapViewportState.transitionToFollowPuckState(
-                    followPuckViewportStateOptions = FollowPuckViewportStateOptions.Builder()
-                        .zoom(scale.doubleValue).pitch(0.0).build()
+                val japanCenter = Point.fromLngLat(138.2529, 36.2048) // 日本の中心位置
+                mapView.mapboxMap.setCamera(
+                    CameraOptions.Builder()
+                        .center(japanCenter)
+                        .zoom(4.0)
+                        .pitch(0.0)
+                        .build()
                 )
 
-                // ジェスチャーを管理
-                val gesturesPlugin: GesturesPlugin = mapView.gestures
+                // 自身の位置情報にカメラを移動させる
+                mapViewportState.transitionToFollowPuckState(
+                    followPuckViewportStateOptions = FollowPuckViewportStateOptions.Builder()
+                        .zoom(scale.doubleValue).pitch(if (isTilt.value) 45.0 else 0.0).build()
+                )
 
-                // 地図をズームした時の動きを定義
-                val onScaleListener = object : OnScaleListener {
-                    override fun onScaleBegin(detector: StandardScaleGestureDetector) {}
-                    override fun onScale(detector: StandardScaleGestureDetector) {}
-                    override fun onScaleEnd(detector: StandardScaleGestureDetector) {
-                        scale.doubleValue = mapView.mapboxMap.cameraState.zoom
-                    }
+                mapView.gestures.apply {
+                    // 地図をズームした時にボタン押下時の倍率も同一になるように取得
+                    addOnScaleListener(object : OnScaleListener {
+                        override fun onScaleBegin(detector: StandardScaleGestureDetector) {}
+                        override fun onScale(detector: StandardScaleGestureDetector) {}
+                        override fun onScaleEnd(detector: StandardScaleGestureDetector) {
+                            scale.doubleValue = mapView.mapboxMap.cameraState.zoom
+                        }
+                    })
+                    // 地図を動かした時にトラッキング状態でないことを通知させる
+                    addOnMoveListener(object : OnMoveListener {
+                        override fun onMoveBegin(detector: MoveGestureDetector) {
+                            isTracking.value = false
+                        }
+
+                        override fun onMove(detector: MoveGestureDetector): Boolean {
+                            return false
+                        }
+
+                        override fun onMoveEnd(detector: MoveGestureDetector) {}
+                    })
                 }
-                val onMoveListener = object : OnMoveListener {
-                    override fun onMoveBegin(detector: MoveGestureDetector) {
-                        isTracking.value = false
-                    }
-
-                    override fun onMove(detector: MoveGestureDetector): Boolean {
-                        return false
-                    }
-
-                    override fun onMoveEnd(detector: MoveGestureDetector) {}
-                }
-
-                gesturesPlugin.apply {
-                    addOnScaleListener(onScaleListener)
-                    addOnMoveListener(onMoveListener)
-                }
+                mapView.visibility = View.VISIBLE
             }
 
-            // マップのタイル更新、ルート案内設定時に再描画を行う
-//            MapEffect(currentStyle.value) { mapView ->
-//                mapView.mapboxMap.loadStyle(currentStyle.value) { style ->
-//                    style.addSource(
-//                        geoJsonSource("line-source").geometry(
-//                            LineString.fromLngLats(
-//                                routeLine.value
-//                            )
-//                        )
-//                    )
-//
-//                    if (style.getLayer("line-layer") != null) {
-//                        style.removeStyleLayer("line-layer")
-//                    }
-//
-//                    style.addLayerAt(
-//                        // LineLayerを追加
-//                        lineLayer("line-layer", "line-source") {
-//                            lineCap(LineCap.SQUARE)
-//                            lineJoin(LineJoin.NONE)
-//                            lineOpacity(0.7)
-//                            lineWidth(8.0)
-//                            lineColor("#0F3")
-//                        },
-//                        style.styleLayers.lastIndex
-//                    )
-//                }
-//            }
+            // 案内先を決定した時の処理
             MapEffect(routeLine.value) { mapView ->
-                // 決定したルートをもとにルートマネージャーを生成する
-               val routeManager = NavigationManager(toHansinFromHankyu, object : RouteCallback {
-                    override fun onRouteLineUpdated(routeLine: List<Point>) {
-                        println("位置情報が更新された")
-                        mapView.mapboxMap.loadStyle(currentStyle.value) { style ->
-                            style.addSource(
-                                geoJsonSource("line-source").geometry(
-                                    LineString.fromLngLats(
-                                        routeLine
-                                    )
-                                )
-                            )
+                // 経路が更新されたならスタイルを更新する
+                mapView.mapboxMap.loadStyle(defaultStyle) {
+                    routeLine.value.routes.windowed(2, 1).forEachIndexed { index, segment ->
+                        val segmentSourceId = "line-source-$index" // 各線のIDをユニークにする
+                        val segmentLayerId = "line-layer-$index"
+                        println(segmentSourceId)
+                        mapView.mapboxMap.getStyle { style ->
+                            // GeoJSON ソースを追加
+                            val source = geoJsonSource(segmentSourceId) {
+                                geometry(LineString.fromLngLats(segment))
+                            }
 
-                            if (style.getLayer("line-layer") != null) {
-                                style.removeStyleLayer("line-layer")
+                            if (!style.styleSourceExists(segmentSourceId)) {
+                                style.addSource(source)
+                            } else {
+                                style.getSourceAs<GeoJsonSource>(segmentSourceId)
+                                    ?.geometry(LineString.fromLngLats(segment))
                             }
 
                             style.addLayerAt(
-                                // LineLayerを追加
-                                lineLayer("line-layer", "line-source") {
+                                lineLayer(segmentLayerId, segmentSourceId) {
                                     lineCap(LineCap.SQUARE)
                                     lineJoin(LineJoin.NONE)
                                     lineOpacity(0.7)
                                     lineWidth(8.0)
                                     lineColor("#0F3")
-                                },
-                                style.styleLayers.lastIndex
+                                }, style.styleLayers.lastIndex
                             )
                         }
                     }
-                })
-                mapView.location.getLocationProvider()?.registerLocationConsumer(routeManager)
-            }
+                }
 
+                // 決定したルートをもとにルートマネージャーを生成する
+                val routeManager =
+                    NavigationManager(routeLine.value.routes, object : RouteCallback {
+                        // 案内ルートが更新された時に新しいルートに描画し直す
+                        override fun onRouteLineUpdated(passedIndex: Int) {
+                            mapView.mapboxMap.style?.let { style ->
+                                for (i in 0..passedIndex) {
+                                    val segmentSourceId = "line-source-$i"
+                                    val segmentLayerId = "line-layer-$i"
+                                    style.removeStyleSource(segmentSourceId)
+                                    style.removeStyleLayer(segmentLayerId)
+                                }
+                                routeLine.value.floorChangeIndex.toSortedMap(comparator = compareByDescending { it })
+                                    .forEach { (index, floor) ->
+                                        if (passedIndex >= index) {
+                                            mapView.mapboxMap.loadStyle(Style.DARK)
+                                            return@forEach
+                                        }
+                                    }
+                            }
+                        }
+                    })
+                // プロバイダーに位置情報を要求していることを伝える
+                mapView.location.getLocationProvider()
+                    ?.registerLocationConsumer(routeManager)
+            }
         }
+        Box(
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 56.dp)
+        ) {
+            ElevatedButton(
+                onClick = {
+                    isTilt.value = !isTilt.value
+
+                    if (isTracking.value) {
+                        mapViewportState.transitionToFollowPuckState(
+                            followPuckViewportStateOptions = FollowPuckViewportStateOptions.Builder()
+                                .zoom(scale.doubleValue).pitch(if (isTilt.value) 45.0 else 0.0).build()
+                        )
+                    } else {
+                        mapViewportState.setCameraOptions {
+                            center(mapViewportState.cameraState?.center)
+                            zoom(scale.doubleValue)
+                            pitch(if (isTilt.value) 45.0 else 0.0)
+                            build()
+                        }
+                    }
+                },
+
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                colors = if (isTilt.value) buttonColors(
+                    containerColor = InactiveButtonColor,
+                    contentColor = Color.Gray
+                ) else buttonColors(
+                    containerColor = InactiveButtonColor,
+                    contentColor = Color.Gray
+                )
+            ) {
+                // Boxで囲んでアイコンを中央に配置
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = if (isTilt.value) painterResource(R.drawable.ic_three_dimensional)
+                        else painterResource(R.drawable.ic_plane),
+                        contentDescription = "カップの表示角度の切り替え",
+                        modifier = Modifier.requiredSize(width = 24.dp, height = 24.dp)
+                    )
+                }
+            }
+        }
+
 
         Column(
             modifier = Modifier
@@ -217,11 +267,8 @@ fun ShowMap() {
         ) {
             ElevatedButton(
                 onClick = {
-                    println("おした")
-
-
                     routeLine.value =
-                        if (routeLine.value.isEmpty()) toHansinFromHankyu else emptyList()
+                        if (routeLine.value is EmptyRoute) FromHankyuToHanshin() else EmptyRoute()
                 }
             ) {
                 Icon(
@@ -230,47 +277,15 @@ fun ShowMap() {
                     modifier = Modifier.size(20.dp)
                 )
             }
-            ElevatedButton(
-                onClick = {
-                    isTilt.value = !isTilt.value
-                    mapViewportState.setCameraOptions {
-                        center(mapViewportState.cameraState?.center)
-                        zoom(scale.doubleValue)
-                        pitch(if (isTilt.value) 45.0 else 0.0)
-                        build()
-                    }
-                },
-                modifier = Modifier.size(80.dp),
-                shape = CircleShape,
-                colors = if (isTracking.value) buttonColors(
-                    containerColor = ActiveButtonColor,
-                    contentColor = Color.White
-                ) else buttonColors(
-                    containerColor = InactiveButtonColor,
-                    contentColor = Color.Gray
-                )
-            ) {
-                Icon(
-                    painter = if (isTilt.value) painterResource(R.drawable.ic_plane) else painterResource(
-                        R.drawable.ic_three_dimensional
-                    ),
-                    contentDescription = "現在地に戻る",
-                    modifier = Modifier.requiredSize(48.dp)
-                )
-            }
+
 
             Button(
                 onClick = {
                     isTracking.value = true // Resume tracking
                     mapViewportState.transitionToFollowPuckState(
                         followPuckViewportStateOptions = FollowPuckViewportStateOptions.Builder()
-                            .zoom(scale.doubleValue).pitch(0.0).build()
+                            .zoom(scale.doubleValue).pitch(if (isTilt.value) 45.0 else 0.0).build()
                     )
-                    if (currentStyle.value == Style.STANDARD) {
-                        currentStyle.value = "mapbox://styles/umetika/cm82qo3t700b001soh2ylhmx7"
-                    } else {
-                        currentStyle.value = Style.STANDARD
-                    }
                 }, modifier = Modifier.size(80.dp),
                 shape = CircleShape,
                 colors = if (isTracking.value) buttonColors(
@@ -293,4 +308,3 @@ fun ShowMap() {
         }
     }
 }
-

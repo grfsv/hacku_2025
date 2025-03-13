@@ -1,14 +1,16 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-//    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
     namespace = "com.example.umechika"
     compileSdk = 35
-
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId = "com.example.umechika"
         minSdk = 28
@@ -17,6 +19,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // プロジェクトプロパティからMAPBOX_ACCESS_TOKENを取得
+        val MAPBOX_ACCESS_TOKEN: String by project
+        resValue("string", "mapbox_access_token", "\"$MAPBOX_ACCESS_TOKEN\"")
     }
 
     buildTypes {
@@ -38,18 +44,10 @@ android {
     buildFeatures {
         compose = true
     }
-        packaging {
-            resources {
-                excludes += setOf(
-                    "META-INF/DEPENDENCIES",
-                    "META-INF/INDEX.LIST"
-                )
-            }
-        }
+
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
