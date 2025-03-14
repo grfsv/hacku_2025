@@ -20,8 +20,15 @@ class FromHankyuToHanshin : NavigationRoute() {
         mapOf(2 to Floor.first_floor, 4 to Floor.second_floor)
 
     override val messages: Map<Int, String> = mapOf(
-        2 to "2階から1階へ",
-        4 to "4階から2階へ"
+        1 to "東方向に直進"
+        2 to "西方向に直進"
+        3 to "南方向に直進"
+        4 to "北方向に直進"
+        5 to "左に曲がる"
+        6 to "右に曲がる"
+        7 to "2階から1階へ"
+        8 to "1階から地下1階へ"
+        9 to "地下1階から地下2階へ"
     )
 
     override val routes: List<Point> = listOf(
