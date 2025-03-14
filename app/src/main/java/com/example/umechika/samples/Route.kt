@@ -20,8 +20,16 @@ class FromHankyuToHanshin : NavigationRoute() {
         mapOf(2 to Floor.first_floor, 4 to Floor.second_floor)
 
     override val messages: Map<Int, String> = mapOf(
-        2 to "2階から1階へ",
-        4 to "4階から2階へ"
+        0 to "階段を降ります",
+        3 to "もう一度階段を降ります",
+        8 to "左に曲がります",
+        11 to "まっすぐ進みます",
+        14 to "階段を降ります",
+        17 to "右に曲がります",
+        22 to "まっすぐ進みます",
+        45 to "右に曲がります",
+        49 to "まっすぐ進みます",
+        57 to "左手に目的地があります",
     )
 
     override val routes: List<Point> = listOf(
@@ -91,8 +99,8 @@ class FromHankyuToHanshin : NavigationRoute() {
 }
 
 class EmptyRoute : NavigationRoute() {
-    override val messages: Map<Int, String>
-        get() = TODO("Not yet implemented")
+    override val messages: Map<Int, String> = emptyMap()
+
     override val routeName = "未選択"
     override val floorChangeIndex: Map<Int, Floor> = emptyMap()
     override val routes: List<Point> = emptyList()

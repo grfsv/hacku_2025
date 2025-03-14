@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +45,9 @@ import com.example.umechika.ui.theme.ActiveButtonColor
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationButton(
+    isNavigation: MutableState<Boolean>,
     onConfirm: (NavigationRoute) -> Unit,
+    onStopNavigation: () -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val options = listOf(EmptyRoute(), FromHankyuToHanshin())
@@ -55,9 +58,12 @@ fun NavigationButton(
         onClick = { showDialog = true },
         modifier = Modifier.size(80.dp),
         shape = CircleShape,
-        colors = buttonColors(
+        colors = if (isNavigation.value) buttonColors(
             containerColor = ActiveButtonColor,
             contentColor = Color.White
+        ) else buttonColors(
+            containerColor = Color.White,
+            contentColor = Color.Gray
         )
     ) {
         Icon(
@@ -68,7 +74,9 @@ fun NavigationButton(
     }
 
     if (showDialog) {
+
         Dialog(onDismissRequest = { showDialog = false }) {
+
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -81,7 +89,7 @@ fun NavigationButton(
                         .padding(16.dp),
                 ) {
                     Text(
-                        text = "行き先を選択",
+                        text = if (isNavigation.value) "案内を終了します" else "行き先を選択",
                         modifier = Modifier
                             .padding(bottom = 8.dp)
                             .align(Alignment.CenterHorizontally),
@@ -89,39 +97,43 @@ fun NavigationButton(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it }
-                    ) {
-                        TextField(
-                            value = selectedOption.routeName,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("選択してください") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                        )
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        ExposedDropdownMenu(
+                    if (!isNavigation.value) {
+                        ExposedDropdownMenuBox(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onExpandedChange = { expanded = it }
                         ) {
-                            options.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option.routeName) },
-                                    onClick = {
-                                        selectedOption = option
-                                        expanded = false
-                                    }
-                                )
+                            TextField(
+                                value = selectedOption.routeName,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("選択してください") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expanded
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor()
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                options.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option.routeName) },
+                                        onClick = {
+                                            selectedOption = option
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // ボタンを横並びにする
@@ -138,16 +150,19 @@ fun NavigationButton(
                         Spacer(modifier = Modifier.size(8.dp)) // ボタン間のスペース
                         Button(
                             onClick = {
-                                onConfirm(selectedOption)
+                                if (isNavigation.value) onStopNavigation() else onConfirm(
+                                    selectedOption
+                                )
                                 showDialog = false
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("確定")
+                            Text("決定")
                         }
                     }
                 }
             }
         }
+
     }
 }

@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,13 +38,11 @@ import com.example.umechika.samples.EmptyRoute
 import com.example.umechika.samples.NavigationRoute
 import com.example.umechika.ui.component.NavigationButton
 import com.example.umechika.ui.theme.*
-import com.example.umechika.utils.CustomLocationProvider
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.android.gestures.StandardScaleGestureDetector
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
@@ -73,6 +70,8 @@ fun ShowMap() {
     val isTracking = remember { mutableStateOf(true) }
     // 地図の立体表示切り替え
     val isTilt = remember { mutableStateOf(true) }
+    // 案内中のフラグ
+    val isNavigation = remember { mutableStateOf(false) }
 
     // 地図の表示サイズ
     val scale = remember { mutableDoubleStateOf(18.5) }
@@ -82,12 +81,11 @@ fun ShowMap() {
     val currentMapView = remember { mutableStateOf<com.mapbox.maps.MapView?>(null) }
 
     // 表示に使うデフォルトのスタイル
-    val defaultStyle = Style.STANDARD
+    val defaultStyle = "mapbox://styles/umetika/cm85zer6f007f01rg1mrn8ggd/draft"
 
     // テキストの表示
     val NavigationMessage = remember { mutableStateOf("梅チカナビ") }
 
-    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -98,13 +96,14 @@ fun ShowMap() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
+                .background(color = if (isNavigation.value) ActiveButtonColor else Color.White),
         ) {
             // Box 内にコンテンツを追加してみる
             Text(
                 text = NavigationMessage.value,
                 modifier = Modifier.align(Alignment.Center),
                 fontSize = 24.sp,
-                fontWeight = FontWeight.W400
+                fontWeight = FontWeight.Bold
             )
         }
         Box {
@@ -126,7 +125,6 @@ fun ShowMap() {
                             puckBearingEnabled = true
                         }
                     }
-
 
                     val japanCenter = Point.fromLngLat(138.2529, 36.2048) // 日本の中心位置
                     mapView.mapboxMap.setCamera(
@@ -171,12 +169,14 @@ fun ShowMap() {
 
                 // 案内先を決定した時の処理
                 MapEffect(routeLine.value) { mapView ->
+                    NavigationMessage.value =
+                        if (routeLine.value is EmptyRoute) "梅チカナビ" else "目的地：${routeLine.value.routeName}"
                     // 経路が更新されたならスタイルを更新する
                     mapView.mapboxMap.loadStyle(defaultStyle) {
-                        routeLine.value.routes.windowed(2, 1).forEachIndexed { index, segment ->
-                            val segmentSourceId = "line-source-$index" // 各線のIDをユニークにする
-                            val segmentLayerId = "line-layer-$index"
-                            mapView.mapboxMap.getStyle { style ->
+                        mapView.mapboxMap.getStyle { style ->
+                            routeLine.value.routes.windowed(2, 1).forEachIndexed { index, segment ->
+                                val segmentSourceId = "line-source-$index" // 各線のIDをユニークにする
+                                val segmentLayerId = "line-layer-$index"
                                 // GeoJSON ソースを追加
                                 val source = geoJsonSource(segmentSourceId) {
                                     geometry(LineString.fromLngLats(segment))
@@ -207,6 +207,21 @@ fun ShowMap() {
                         NavigationManager(routeLine.value.routes, object : RouteCallback {
                             // 案内ルートが更新された時に新しいルートに描画し直す
                             override fun onRouteLineUpdated(passedIndex: Int) {
+                                println("今消されたのは$passedIndex")
+
+                                if (passedIndex >= 59) {
+                                    isNavigation.value = false
+                                    mapView.mapboxMap.style?.let { style ->
+                                        for (i in routeLine.value.routes.size downTo 0) {
+                                            val segmentSourceId = "line-source-$i"
+                                            val segmentLayerId = "line-layer-$i"
+                                            if (!style.styleSourceExists(segmentSourceId)) break
+                                            style.removeStyleSource(segmentSourceId)
+                                            style.removeStyleLayer(segmentLayerId)
+                                        }
+                                    }
+                                    routeLine.value = EmptyRoute()
+                                }
                                 mapView.mapboxMap.style?.let { style ->
                                     for (i in passedIndex downTo 0) {
                                         val segmentSourceId = "line-source-$i"
@@ -215,13 +230,12 @@ fun ShowMap() {
                                         style.removeStyleSource(segmentSourceId)
                                         style.removeStyleLayer(segmentLayerId)
                                     }
-//                                routeLine.value.floorChangeIndex.toSortedMap(comparator = compareByDescending { it })
-//                                    .forEach { (index, floor) ->
-//                                        if (passedIndex >= index) {
-//                                            mapView.mapboxMap.loadStyle(Style.DARK)
-//                                            return@forEach
-//                                        }
-//                                    }
+
+                                    val message: String =
+                                        routeLine.value.messages.filter { it.key <= passedIndex }
+                                            .maxByOrNull { it.key }?.value ?: "案内中..."
+                                    NavigationMessage.value = message
+
                                 }
                             }
                         })
@@ -238,6 +252,7 @@ fun ShowMap() {
                 ElevatedButton(
                     onClick = {
                         isTilt.value = !isTilt.value
+                        currentMapView.value?.mapboxMap?.style?.removeStyleLayer("umechika")
 
                         if (isTracking.value) {
                             mapViewportState.transitionToFollowPuckState(
@@ -288,14 +303,21 @@ fun ShowMap() {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                NavigationButton(onConfirm = {
-                    routeLine.value = it
-                    if (it !is EmptyRoute) {
-                        currentMapView.value?.location?.setLocationProvider(
-                            locationProvider = CustomLocationProvider(context = context)
-                        )
+                NavigationButton(
+                    isNavigation = isNavigation, onConfirm = {
+                        routeLine.value = it
+                        isNavigation.value = true
+
+//                    if (it !is EmptyRoute) {
+//                        currentMapView.value?.location?.setLocationProvider(
+//                            locationProvider = CustomLocationProvider(context = context)
+//                        )
+//                    }
+                    }, onStopNavigation = {
+                        routeLine.value = EmptyRoute()
+                        isNavigation.value = false
                     }
-                })
+                )
 
                 ElevatedButton(
                     onClick = {
