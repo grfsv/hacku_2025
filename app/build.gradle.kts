@@ -21,8 +21,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // プロジェクトプロパティからMAPBOX_ACCESS_TOKENを取得
-        val MAPBOX_ACCESS_TOKEN: String by project
-        resValue("string", "mapbox_access_token", "\"$MAPBOX_ACCESS_TOKEN\"")
+//        val MAPBOX_ACCESS_TOKEN: String by project
+//        resValue("string", "mapbox_access_token", "\"$MAPBOX_ACCESS_TOKEN\"")
     }
 
     buildTypes {

@@ -45,6 +45,7 @@ import com.mapbox.android.gestures.StandardScaleGestureDetector
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
@@ -81,7 +82,7 @@ fun ShowMap() {
     val currentMapView = remember { mutableStateOf<com.mapbox.maps.MapView?>(null) }
 
     // 表示に使うデフォルトのスタイル
-    val defaultStyle = "mapbox://styles/umetika/cm85zer6f007f01rg1mrn8ggd"
+    val defaultStyle = Style.STANDARD
 
     // テキストの表示
     val NavigationMessage = remember { mutableStateOf("梅チカナビ") }
