@@ -7,13 +7,22 @@ sealed class NavigationRoute {
         second_floor, first_floor, ground_floor,
     }
 
+    abstract val routeName: String
     abstract val routes: List<Point>
     abstract val floorChangeIndex: Map<Int, Floor>
+    abstract val messages: Map<Int, String>
 }
 
 class FromHankyuToHanshin : NavigationRoute() {
+
+    override val routeName = "阪神 大阪梅田駅"
     override val floorChangeIndex: Map<Int, Floor> =
         mapOf(2 to Floor.first_floor, 4 to Floor.second_floor)
+
+    override val messages: Map<Int, String> = mapOf(
+        2 to "2階から1階へ",
+        4 to "4階から2階へ"
+    )
 
     override val routes: List<Point> = listOf(
         Point.fromLngLat(135.49847, 34.70522),
@@ -82,6 +91,9 @@ class FromHankyuToHanshin : NavigationRoute() {
 }
 
 class EmptyRoute : NavigationRoute() {
+    override val messages: Map<Int, String>
+        get() = TODO("Not yet implemented")
+    override val routeName = "未選択"
     override val floorChangeIndex: Map<Int, Floor> = emptyMap()
     override val routes: List<Point> = emptyList()
 }

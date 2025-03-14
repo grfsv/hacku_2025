@@ -7,12 +7,14 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
 import android.os.Handler
+import com.example.umechika.service.LocationService
 import com.mapbox.maps.plugin.locationcomponent.LocationConsumer
 import com.mapbox.maps.plugin.locationcomponent.LocationProvider
 
 class CustomLocationProvider(context: Context) :
     LocationProvider, SensorEventListener {
-   private val sampleCoordinates = arrayListOf(
+        val context: Context = context
+    private val sampleCoordinates = arrayListOf(
 //        Pair(35.6762, 139.6503),    // 東京
 //        Pair(35.4437, 139.6380),    // 横浜
         Pair(34.6937, 135.5023),    // 大阪
@@ -22,7 +24,7 @@ class CustomLocationProvider(context: Context) :
 
     private val consumers: MutableList<LocationConsumer> = ArrayList()
     private var index = 0
-    private val UPDATE_INTERVAL: Long = 5000 // 5秒（ミリ秒）
+    private val UPDATE_INTERVAL: Long = 1000 // 5秒（ミリ秒）
     private val handler = Handler()
 
     // センサー関連
@@ -89,15 +91,16 @@ class CustomLocationProvider(context: Context) :
             longitude = sampleCoordinates[currentIndex].second
             time = System.currentTimeMillis()
         }
-        // Location -> Pointに変換する（Point.fromLngLat(longitude, latitude)）
-        val point = com.mapbox.geojson.Point.fromLngLat(newLocation.longitude, newLocation.latitude)
-        for (consumer in consumers) {
-            consumer.onLocationUpdated(point)
+
+        val latitude =  LocationService(context = context).getCurrentLat()
+        val longitude = LocationService(context = context).getCurrentLon()
+
+        if (latitude != null && longitude != null) {
+            // Location -> Pointに変換する（Point.fromLngLat(longitude, latitude)）
+            val point = com.mapbox.geojson.Point.fromLngLat(newLocation.longitude, newLocation.latitude)
+            for (consumer in consumers) {
+                consumer.onLocationUpdated(point)
+            }
         }
     }
-
-//    fun stopUpdating() {
-//        handler.removeCallbacksAndMessages(null)
-//        sensorManager.unregisterListener(this)
-//    }
 }

@@ -43,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 
 }
@@ -66,4 +67,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("com.mapbox.maps:android:11.10.2")
     implementation("com.mapbox.extension:maps-compose:11.10.2")
+    // OkHttp for API calls
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

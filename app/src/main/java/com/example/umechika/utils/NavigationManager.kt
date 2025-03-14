@@ -14,12 +14,11 @@ class NavigationManager(
     private val waypoints: List<Point>,
     private val callback: RouteCallback
 ) : LocationConsumer { // 位置情報のリスナーを実装
-    private val thresholdDistance: Double = 10.0 // 10m
+    private val thresholdDistance: Double = 20.0 // 10m
 //    private val mutableWaypoints: MutableList<Point> = waypoints.toMutableList()
 
     // 位置情報が更新された時
     override fun onLocationUpdated(vararg location: Point, options: (ValueAnimator.() -> Unit)?) {
-        println(waypoints.size)
         if (location.isEmpty()) return
 
         val userLocation = location[0]  // 引数から位置情報を取得
